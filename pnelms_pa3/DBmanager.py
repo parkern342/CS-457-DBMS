@@ -49,8 +49,9 @@ def create(commandTokens):
 
         #if keyword is table, create a table in the directory of the currently used database, if one is used
         elif commandTokens[tokenCounter].lower() == "table" and dbUsed == True:
+            print(commandTokens[tokenCounter + 1].split('(')[0])
             try:
-                fn = concat(commandTokens[tokenCounter + 1], ".txt")
+                fn = concat(commandTokens[tokenCounter + 1].split('(')[0], ".txt")
                 filepath = os.path.join(cwd, currDB)
                 filepath = os.path.join(filepath, fn)
 
@@ -63,6 +64,15 @@ def create(commandTokens):
                     i = 3
                     #parses attribute list
                     if commandTokens[tokenCounter + 3][-1] != ')':
+
+                        #if no space between table name and attribute list, add one
+                        if len(commandTokens[2].split('(')) > 1:
+                            d = '('
+                            commandTokens = " ".join(commandTokens)
+                            commandTokens = [d+e for e in commandTokens.split(d, 1) if e]
+                            commandTokens[0] = commandTokens[0][1:]
+                            commandTokens = " ".join(commandTokens)
+                            commandTokens = commandTokens.split()
 
                         #add first attribute name
                         if commandTokens[tokenCounter + 2][0] == '(' and len(commandTokens[tokenCounter + 2][1:]) > 0:
