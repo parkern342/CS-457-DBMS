@@ -49,7 +49,6 @@ def create(commandTokens):
 
         #if keyword is table, create a table in the directory of the currently used database, if one is used
         elif commandTokens[tokenCounter].lower() == "table" and dbUsed == True:
-            print(commandTokens[tokenCounter + 1].split('(')[0])
             try:
                 fn = concat(commandTokens[tokenCounter + 1].split('(')[0], ".txt")
                 filepath = os.path.join(cwd, currDB)
