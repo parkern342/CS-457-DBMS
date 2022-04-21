@@ -8,8 +8,6 @@ import os
 import sys
 from posixpath import split
 
-#this will allow error messages to specify which command caused an error when multiple commands are given in one line
-commandCounter = 0
 #tokenCounter helps keep track of progress when parsing through command (1 when analyzing first token, 2 when analyzing second token, and so on)
 tokenCounter = 0
 #keeps track of whether or not a database is in use
@@ -867,9 +865,6 @@ def main():
     #allow the global tokenCounter to be used in main
     global tokenCounter
 
-    #
-    global commandCounter
-
     #list of first token keywords
     keywords = ["create", "drop", "select", "alter", "use", "insert", "update", "delete"]
 
@@ -884,7 +879,6 @@ def main():
     #.exit can currently be succeeded by other tokens as they will be ignored
     while not (commandTokens[0].lower() == ".exit"):
         #reset token and command counter upon new user input
-        commandCounter = 0
         tokenCounter = 0
 
         allCommands = ['']
@@ -917,7 +911,6 @@ def main():
         for x in allCommands[:-1]:
             
             tokenCounter = 0
-            commandCounter += 1
             
             #splits tokens in command into a list
             #split() will split the characters of .exit into a list, which is undesirable 
