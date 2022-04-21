@@ -66,7 +66,7 @@ def create(commandTokens):
                     if commandTokens[tokenCounter + 3][-1] != ')':
 
                         #if no space between table name and attribute list, add one
-                        if len(commandTokens[2].split('(')) > 1:
+                        if len(commandTokens[2].split('(')) > 1: 
                             d = '('
                             commandTokens = " ".join(commandTokens)
                             commandTokens = [d+e for e in commandTokens.split(d, 1) if e]
