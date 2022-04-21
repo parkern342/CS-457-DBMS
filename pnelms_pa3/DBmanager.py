@@ -861,7 +861,7 @@ def delete(updateStr):
 def main():
     #fancy formating for program start
     print(" ")
-    print("-- CS457 PA1 - Parker Nelms --")
+    print("-- CS457 PA3 - Parker Nelms --")
     print(" ")
 
     #allow the global tokenCounter to be used in main
