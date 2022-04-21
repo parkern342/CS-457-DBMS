@@ -364,7 +364,7 @@ def innerJoinSelect(line2, line3):
             f2.seek(0)
             for n in f2:
                 if x.split('|')[colNum] == n.split('|')[colNum2]:
-                    print(x[:-1] + n[:-1])
+                    print(x.strip() + n.strip())
     else:
         print("!Cannot select from '" + tableName1 + "' and '" + tableName2 + "' because one or both do not exist.") 
 
