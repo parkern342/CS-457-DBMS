@@ -201,7 +201,7 @@ def leftOuterJoinSelect(line2, line3):
 
     temp1 = line2.split()[2]
 
-    if temp1[-1] is ',':
+    if temp1[-1] == ',':
         temp = temp1[:-1]
         tableLabels = [[line2.split()[1], temp],[line2.split()[-2], line2.split()[-1]]] 
 
@@ -297,7 +297,7 @@ def innerJoinSelect(line2, line3):
 
     temp1 = line2.split()[2]
 
-    if temp1[-1] is ',':
+    if temp1[-1] == ',':
         temp = temp1[:-1]
         tableLabels = [[line2.split()[1], temp],[line2.split()[-2], line2.split()[-1]]] 
 
