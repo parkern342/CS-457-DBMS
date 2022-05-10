@@ -15,6 +15,8 @@ dbUsed = False
 #keeps track of the name of the database that is currently being used
 currDB = None
 
+commandList = {}
+
 setCol = 0
 
 currUpdate = None
@@ -603,7 +605,7 @@ def add(commandTokens):
         print("!Please select a database before altering table")
 
 
-def insert(commandTokens):
+def insertLine(commandTokens):
     fullCom = ''.join(commandTokens)
     dataList = fullCom[fullCom.find('(')+1:fullCom.find(')')].split(',')
 
@@ -746,7 +748,6 @@ def setData(setField, setVal, compField, compVal, operator):
             if (first[colNum].split()[0] == setField):
                 colNum = 0
             else: 
-                print(first[colNum].split())
                 while ((first[colNum].split()[0] != setField) and (colNum < len(first))):
                     colNum += 1
                 if colNum == 0:
@@ -833,6 +834,22 @@ def setData(setField, setVal, compField, compVal, operator):
 #update function calls setData and feeds it key info
 def update(updateStr):
     global currUpdate
+
+    try:
+        line1 = updateStr.split("set")[0].split()
+        
+        line2 = updateStr.split("set")[1]
+        line2 = line2.split("where")[0].split()
+        line2.insert(0, "set")
+
+        line3 = updateStr.split("where")[1].partition(";")[0].split()
+        line3.insert(0, "where")
+
+        currUpdate = line1[1]
+        setData(line2[1], line2[3], line3[1], line3[3], line3[2])
+    except:
+        pass
+    
     try:
         line1 = updateStr.split()
         currUpdate = line1[1]
@@ -855,6 +872,10 @@ def delete(updateStr):
         print("!Cannot insert due to syntax error")
         pass
 
+def storeChanges(commandStr):
+    global commandList
+    commandList.
+
 #main function
 def main():
     #fancy formating for program start
@@ -869,7 +890,7 @@ def main():
     keywords = ["create", "drop", "select", "alter", "use", "insert", "update", "delete"]
 
     #associate keywords with functions to be automatically called when parsed
-    key_commands = {'create':create, 'drop':drop, 'select':select, 'alter':alter, 'use':use, 'insert':insert, 'update':update, 'delete':delete}
+    key_commands = {'create':create, 'drop':drop, 'select':select, 'alter':alter, 'use':use, 'insert':insertLine, 'update':update, 'delete':delete}
 
     #list of separated token from user input
     commandTokens = "null"
