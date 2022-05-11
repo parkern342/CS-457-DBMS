@@ -1,3 +1,0 @@
-seat int|status int|
-22|0|
-23|1|

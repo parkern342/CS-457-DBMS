@@ -3,10 +3,11 @@
 #History: Version 3 - Programming Assignment 3
 #Purpose: take sql commands and do basic database operations to manage database properties and metadata
 
-from operator import concat
+from operator import concat, truediv
 import os
 import sys
 from posixpath import split
+from turtle import delay
 
 #tokenCounter helps keep track of progress when parsing through command (1 when analyzing first token, 2 when analyzing second token, and so on)
 tokenCounter = 0
@@ -15,7 +16,10 @@ dbUsed = False
 #keeps track of the name of the database that is currently being used
 currDB = None
 
-commandList = {}
+#set to true when transaction is started and set to false upon commit 
+inTransaction = False
+transChanges = []
+ownerDict = {}
 
 setCol = 0
 
@@ -734,16 +738,51 @@ def setData(setField, setVal, compField, compVal, operator):
 
     colNum = 0
     colNum2 = 0
+    linesList = []
+    global transChanges
+    global ownerDict
 
     if dbUsed == True:
         fn = concat(currUpdate, ".txt")
+        fn2 = concat(currUpdate, "_locked.txt")
         filepath = os.path.join(cwd, currDB)
         filepath = os.path.join(filepath, fn)
+        filepath2 = os.path.join(cwd, currDB)
+        filepath2 = os.path.join(filepath2, fn2)
+
+        print(filepath2)
+        if(os.path.exists(filepath2)):
+            filepath = filepath2
+
+        if(transChanges):
+            print(transChanges[-1])
+        
 
         #check if file exists in current database then writes given attribute to table
         if (os.path.exists(filepath)):
-            f = open(filepath, "r+")
-            lines = f.read().split('\n')
+
+            #updates the transaction changes list to most current version for that table then
+            if (os.path.exists(filepath2)):
+                if ownerDict[currUpdate] == True:
+                    lines = transChanges
+
+                    for x in transChanges[:-1]:
+                        linesList.append(x + '\n') 
+                    linesList.append(transChanges[-1]) 
+                    print(linesList)
+                else: 
+                    print("!Error: table " + currUpdate + " is locked!")
+                    return
+            else:
+                f = open(filepath, "r")
+                lines = f.read().split('\n')
+                f.seek(0)
+                linesList = f.readlines()
+                ownerDict[currUpdate] = True
+
+                print(linesList)
+
+            
             first = lines[0].split("|")
             if (first[colNum].split()[0] == setField):
                 colNum = 0
@@ -763,8 +802,7 @@ def setData(setField, setVal, compField, compVal, operator):
 
             numloop = 0
 
-            f.seek(0)
-            linesList = f.readlines()
+            
             lines = linesList[0]
             if operator == '=':
                 for line in linesList[1:]:
@@ -821,10 +859,11 @@ def setData(setField, setVal, compField, compVal, operator):
                     else:
                         lines = lines + line
 
-            #f.write(lines)
-            f.close()
-            writeFile = open(filepath, "w")
-            writeFile.write(lines)
+            #f.close()
+
+            writeFile = open(filepath2, "w")
+            transChanges = lines.split('\n')
+            #writeFile.write(lines)
             writeFile.close()
         else:
             print("!Cannot update table '" + currUpdate + "', because it does not exist.")
@@ -834,31 +873,38 @@ def setData(setField, setVal, compField, compVal, operator):
 #update function calls setData and feeds it key info
 def update(updateStr):
     global currUpdate
+    global ownerDict
 
-    try:
-        line1 = updateStr.split("set")[0].split()
-        
-        line2 = updateStr.split("set")[1]
-        line2 = line2.split("where")[0].split()
-        line2.insert(0, "set")
+    if (inTransaction):
+        try:
+            line1 = updateStr.split("set")[0].split()
+            
+            line2 = updateStr.split("set")[1]
+            line2 = line2.split("where")[0].split()
+            line2.insert(0, "set")
 
-        line3 = updateStr.split("where")[1].partition(";")[0].split()
-        line3.insert(0, "where")
+            line3 = updateStr.split("where")[1].partition(";")[0].split()
+            line3.insert(0, "where")
 
-        currUpdate = line1[1]
-        setData(line2[1], line2[3], line3[1], line3[3], line3[2])
-    except:
-        pass
+            currUpdate = line1[1]
+
+            setData(line2[1], line2[3], line3[1], line3[3], line3[2])
+                
+        except:
+            try:
+                line1 = updateStr.split()
+                currUpdate = line1[1]
+                line2 = input("").split()
+                line3 = input("").partition(";")[0].split()
+                setData(line2[1], line2[3], line3[1], line3[3], line3[2])
+            except:
+                print("!Cannot insert due to syntax error")
+                pass
+            pass
+    else: 
+        print("!Begin transaction before attempting to update table")
     
-    try:
-        line1 = updateStr.split()
-        currUpdate = line1[1]
-        line2 = input("").split()
-        line3 = input("").partition(";")[0].split()
-        setData(line2[1], line2[3], line3[1], line3[3], line3[2])
-    except:
-        print("!Cannot insert due to syntax error")
-        pass
+
     
 #delete calls deleteData and feeds it key info
 def delete(updateStr):
@@ -872,9 +918,64 @@ def delete(updateStr):
         print("!Cannot insert due to syntax error")
         pass
 
-def storeChanges(commandStr):
-    global commandList
-    commandList.
+def startTransaction(): 
+    global inTransaction
+    global ownerDict
+    inTransaction = True
+    dir = os.path.join(cwd, currDB)
+
+    #creates a dictionary to track ownership of lock files
+    for filename in os.listdir(dir):
+        if not "_locked" in filename.split('/')[-1]:
+            ownerDict[filename.split('/')[-1].split('.')[0].lower()] = False
+    
+    print(ownerDict)
+
+
+def commit(isCommit): 
+
+    '''
+    If isCommit is false, do not commit changes, but do delete locked file
+    '''
+
+    global inTransaction 
+    global transChanges
+    
+
+    if inTransaction:
+        if(transChanges) and isCommit:
+            #TODO:
+            #copy files over from lock file to table 
+            dir = os.path.join(cwd, currDB)
+
+            #Will commit changes to file that has changes pending in transaction.
+            #Currently only works for one table being changed at a time
+            for filename in os.listdir(dir):
+                if not "_locked" in filename.split('/')[-1] and not ownerDict[filename.split('/')[-1].split('.')[0].lower()] == False:
+                    fn = os.path.join(dir, filename)
+                    writefile = open(fn, "w")
+                    print(transChanges)
+
+                    #make sure that linebreaks are kept
+                    for x in transChanges[:-1]:
+                        writefile.write(x + '\n')
+                    writefile.write(transChanges[-1])
+                    writefile.close()
+
+                    #remove lock file
+                    filepath = os.path.join(dir, filename[:-4] + "_locked.txt")
+                    os.remove(filepath)
+
+                    #reset transaction changes to none
+                    transChanges = []
+
+            
+        else:
+            print("!Transaction abort.")
+    else:
+        print("!Begin transaction before committing.")
+
+    inTransaction = False 
 
 #main function
 def main():
@@ -887,10 +988,10 @@ def main():
     global tokenCounter
 
     #list of first token keywords
-    keywords = ["create", "drop", "select", "alter", "use", "insert", "update", "delete"]
+    keywords = ["create", "drop", "select", "alter", "use", "insert", "update", "delete", "begin", "commit;"]
 
     #associate keywords with functions to be automatically called when parsed
-    key_commands = {'create':create, 'drop':drop, 'select':select, 'alter':alter, 'use':use, 'insert':insertLine, 'update':update, 'delete':delete}
+    key_commands = {'create':create, 'drop':drop, 'select':select, 'alter':alter, 'use':use, 'insert':insertLine, 'update':update, 'delete':delete, 'begin':startTransaction, 'commit;':commit}
 
     #list of separated token from user input
     commandTokens = "null"
@@ -906,6 +1007,8 @@ def main():
 
         userCom = input("")
         userCom = userCom.replace("\r", "")
+        if(userCom.split("--")[0]):
+            userCom = userCom.split("--")[0]
 
         userCom = userCom.strip()
 
@@ -919,6 +1022,11 @@ def main():
                 key_commands[userCom.split()[0].lower()](userCom)
             elif userCom.split()[0].lower() == "select":
                 key_commands[userCom.split()[0].lower()](userCom)
+            elif userCom.split()[0].lower() == "begin":
+                key_commands[userCom.split()[0].lower()]()
+            elif userCom.split()[0].lower() == "commit;":
+                key_commands[userCom.split()[0].lower()](True)
+                print("committing...")
             elif userCom[-1] == ';':
                 allCommands = userCom.split(';')
             elif userCom.lower() == ".exit":
@@ -952,6 +1060,7 @@ def main():
             elif commandTokens[0].lower() != ".exit": 
                 print("!Keyword '" + commandTokens[0] + "' not valid")
             else:
+                commit(False)
                 print("All done.")
 
 if __name__ == "__main__":
