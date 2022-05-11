@@ -188,7 +188,6 @@ def drop(commandTokens):
     else:
         print("!Call 'DROP' failed due to syntax error, must specify if deleting database or table.")
 
-
 #left outer join select
 def leftOuterJoinSelect(line2, line3):
 
@@ -557,7 +556,6 @@ def select(updateStr):
 
                     print('')        
                     
-
 #alter function handles all action required by the 'alter' keyword
 def alter(commandTokens):
     #keywords list set up for more alter operations
@@ -610,7 +608,7 @@ def add(commandTokens):
     else:
         print("!Please select a database before altering table")
 
-
+#insert line with given data into end of given table
 def insertLine(commandTokens):
     fullCom = ''.join(commandTokens)
     dataList = fullCom[fullCom.find('(')+1:fullCom.find(')')].split(',')
@@ -633,7 +631,7 @@ def insertLine(commandTokens):
     else:
         print("!Please select a database before altering table")
 
-#setData
+#deletes given data from table
 def deleteData(compField, compVal, operator):
 
     deletedCount = 0
@@ -734,8 +732,7 @@ def deleteData(compField, compVal, operator):
     else:
         print("!Please select a database before altering table")
 
-
-#setData
+#sets give data to transaction changes --> called from update function
 def setData(setField, setVal, compField, compVal, operator):
 
     colNum = 0
@@ -797,7 +794,7 @@ def setData(setField, setVal, compField, compVal, operator):
 
             numloop = 0
 
-            
+            updateCount = 0
             lines = linesList[0]
             if operator == '=':
                 for line in linesList[1:]:
@@ -806,6 +803,7 @@ def setData(setField, setVal, compField, compVal, operator):
                         line = line.split("|")
                         line[colNum] = setVal
                         lines = lines + "|".join(line) 
+                        updateCount +=1
                     else:
                         lines = lines + line
             elif operator == '!=':
@@ -815,6 +813,7 @@ def setData(setField, setVal, compField, compVal, operator):
                         line = line.split("|")
                         line[colNum] = setVal
                         lines = lines + "|".join(line) 
+                        updateCount +=1
                     else:
                         lines = lines + line
             elif operator == '<=':
@@ -824,6 +823,7 @@ def setData(setField, setVal, compField, compVal, operator):
                         line = line.split("|")
                         line[colNum] = setVal
                         lines = lines + "|".join(line) 
+                        updateCount +=1
                     else:
                         lines = lines + line
             elif operator == '>=':
@@ -833,6 +833,7 @@ def setData(setField, setVal, compField, compVal, operator):
                         line = line.split("|")
                         line[colNum] = setVal
                         lines = lines + "|".join(line) 
+                        updateCount +=1
                     else:
                         lines = lines + line
             elif operator == '<':
@@ -842,6 +843,7 @@ def setData(setField, setVal, compField, compVal, operator):
                         line = line.split("|")
                         line[colNum] = setVal
                         lines = lines + "|".join(line) 
+                        updateCount +=1
                     else:
                         lines = lines + line
             elif operator == '>':
@@ -851,9 +853,11 @@ def setData(setField, setVal, compField, compVal, operator):
                         line = line.split("|")
                         line[colNum] = setVal
                         lines = lines + "|".join(line) 
+                        updateCount +=1
                     else:
                         lines = lines + line
 
+            print(str(updateCount) + " record(s) modified.")
             #f.close()
 
             writeFile = open(filepath2, "w")
@@ -899,8 +903,6 @@ def update(updateStr):
     else: 
         print("!Begin transaction before attempting to update table")
     
-
-    
 #delete calls deleteData and feeds it key info
 def delete(updateStr):
     global currUpdate
@@ -913,6 +915,7 @@ def delete(updateStr):
         print("!Cannot insert due to syntax error")
         pass
 
+#starts transaction state for updating tables in the active database
 def startTransaction(): 
     global inTransaction
     global ownerDict
@@ -924,7 +927,9 @@ def startTransaction():
         if not "_locked" in filename.split('/')[-1]:
             ownerDict[filename.split('/')[-1].split('.')[0].lower()] = False
 
+    print("Transaction starts.")
 
+#commits changes made during the transaction state
 def commit(isCommit): 
 
     '''
@@ -937,10 +942,8 @@ def commit(isCommit):
 
     if inTransaction:
         if(not transChanges == []) and isCommit:
-            #TODO:
-            #copy files over from lock file to table 
-            dir = os.path.join(cwd, currDB)
 
+            dir = os.path.join(cwd, currDB)
             #Will commit changes to file that has changes pending in transaction.
             #Currently only works for one table being changed at a time
             for filename in os.listdir(dir):
@@ -960,6 +963,7 @@ def commit(isCommit):
 
                     #reset transaction changes to none
                     transChanges = []
+            print("Transaction committed.")
         elif not isCommit:
             dir = os.path.join(cwd, currDB)
             for filename in os.listdir(dir):
