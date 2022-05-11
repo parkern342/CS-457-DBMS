@@ -1,13 +1,12 @@
 #Author: Parker Nelms
-#Date Last Revised: 4/20/22
-#History: Version 3 - Programming Assignment 3
+#Date Last Revised: 5/10/22
+#History: Version 4 - Programming Assignment 3
 #Purpose: take sql commands and do basic database operations to manage database properties and metadata
 
 from operator import concat, truediv
 import os
 import sys
 from posixpath import split
-from turtle import delay
 
 #tokenCounter helps keep track of progress when parsing through command (1 when analyzing first token, 2 when analyzing second token, and so on)
 tokenCounter = 0
@@ -18,7 +17,10 @@ currDB = None
 
 #set to true when transaction is started and set to false upon commit 
 inTransaction = False
+#any changes made during transaction is stored here
 transChanges = []
+#keep track of weather or not the current process can edit any given table in the active database
+#Format: {"Table": True} or {"Table": False}
 ownerDict = {}
 
 setCol = 0
@@ -750,12 +752,8 @@ def setData(setField, setVal, compField, compVal, operator):
         filepath2 = os.path.join(cwd, currDB)
         filepath2 = os.path.join(filepath2, fn2)
 
-        print(filepath2)
         if(os.path.exists(filepath2)):
             filepath = filepath2
-
-        if(transChanges):
-            print(transChanges[-1])
         
 
         #check if file exists in current database then writes given attribute to table
@@ -769,7 +767,6 @@ def setData(setField, setVal, compField, compVal, operator):
                     for x in transChanges[:-1]:
                         linesList.append(x + '\n') 
                     linesList.append(transChanges[-1]) 
-                    print(linesList)
                 else: 
                     print("!Error: table " + currUpdate + " is locked!")
                     return
@@ -779,8 +776,6 @@ def setData(setField, setVal, compField, compVal, operator):
                 f.seek(0)
                 linesList = f.readlines()
                 ownerDict[currUpdate] = True
-
-                print(linesList)
 
             
             first = lines[0].split("|")
@@ -928,8 +923,6 @@ def startTransaction():
     for filename in os.listdir(dir):
         if not "_locked" in filename.split('/')[-1]:
             ownerDict[filename.split('/')[-1].split('.')[0].lower()] = False
-    
-    print(ownerDict)
 
 
 def commit(isCommit): 
@@ -943,7 +936,7 @@ def commit(isCommit):
     
 
     if inTransaction:
-        if(transChanges) and isCommit:
+        if(not transChanges == []) and isCommit:
             #TODO:
             #copy files over from lock file to table 
             dir = os.path.join(cwd, currDB)
@@ -954,7 +947,6 @@ def commit(isCommit):
                 if not "_locked" in filename.split('/')[-1] and not ownerDict[filename.split('/')[-1].split('.')[0].lower()] == False:
                     fn = os.path.join(dir, filename)
                     writefile = open(fn, "w")
-                    print(transChanges)
 
                     #make sure that linebreaks are kept
                     for x in transChanges[:-1]:
@@ -968,12 +960,15 @@ def commit(isCommit):
 
                     #reset transaction changes to none
                     transChanges = []
-
-            
+        elif not isCommit:
+            dir = os.path.join(cwd, currDB)
+            for filename in os.listdir(dir):
+                if not "_locked" in filename.split('/')[-1] and not ownerDict[filename.split('/')[-1].split('.')[0].lower()] == False:
+                    #remove lock file
+                    filepath = os.path.join(dir, filename[:-4] + "_locked.txt")
+                    os.remove(filepath)
         else:
             print("!Transaction abort.")
-    else:
-        print("!Begin transaction before committing.")
 
     inTransaction = False 
 
@@ -1026,7 +1021,6 @@ def main():
                 key_commands[userCom.split()[0].lower()]()
             elif userCom.split()[0].lower() == "commit;":
                 key_commands[userCom.split()[0].lower()](True)
-                print("committing...")
             elif userCom[-1] == ';':
                 allCommands = userCom.split(';')
             elif userCom.lower() == ".exit":
@@ -1064,4 +1058,8 @@ def main():
                 print("All done.")
 
 if __name__ == "__main__":
-    main();
+    try:
+        main();
+    except KeyboardInterrupt:
+        commit(False)
+        print("!Keyboard interrupt.")
