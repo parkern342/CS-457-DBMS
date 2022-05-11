@@ -57,6 +57,7 @@ def create(commandTokens):
         elif commandTokens[tokenCounter].lower() == "table" and dbUsed == True:
             try:
                 fn = concat(commandTokens[tokenCounter + 1].split('(')[0], ".txt")
+                fn = fn.lower()
                 filepath = os.path.join(cwd, currDB)
                 filepath = os.path.join(filepath, fn)
 
@@ -615,6 +616,7 @@ def insertLine(commandTokens):
 
     if dbUsed == True:
         fn = concat(commandTokens[tokenCounter + 1], ".txt")
+        fn = fn.lower()
         filepath = os.path.join(cwd, currDB)
         filepath = os.path.join(filepath, fn)
 
@@ -627,7 +629,7 @@ def insertLine(commandTokens):
             print("1 new record inserted.")
             f.close()
         else:
-            print("!Cannot add to table '" + commandTokens[tokenCounter] + "', because it does not exist.")
+            print("!Cannot add to table '" + commandTokens[tokenCounter + 1] + "', because it does not exist.")
     else:
         print("!Please select a database before altering table")
 
@@ -751,6 +753,8 @@ def setData(setField, setVal, compField, compVal, operator):
 
         if(os.path.exists(filepath2)):
             filepath = filepath2
+            
+        print(currUpdate)
         
 
         #check if file exists in current database then writes given attribute to table
